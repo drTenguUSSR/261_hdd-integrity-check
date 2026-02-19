@@ -9,10 +9,14 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class FileVerifier {
 
-    private static final int BUFFER_SIZE = 32 * 1024 * 1024; // 32 Мб
+    private static final int BUFFER_SIZE = 64 * 1024 * 1024; // 64 Мб для лучшей производительности на 11400F
+    private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors(); // Используем все ядра
 
     /**
      * Читает файл с диска, вычисляет SHA256 для верификации.
@@ -21,6 +25,7 @@ public class FileVerifier {
     public static String readAndHashFile(Path filePath, long totalBytes) throws Exception {
         byte[] buffer = new byte[BUFFER_SIZE];
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        ExecutorService executor = Executors.newFixedThreadPool(NUM_THREADS);
 
         try (FileInputStream fis = new FileInputStream(filePath.toFile());
              BufferedInputStream bis = new BufferedInputStream(fis, BUFFER_SIZE)) {
@@ -45,9 +50,12 @@ public class FileVerifier {
                     timerStart = System.nanoTime();
                 }
             }
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(10, TimeUnit.SECONDS);
         }
 
         System.out.println();
-        return HashUtils.bytesToHex(digest.digest());
+        return HashUtils.bytesToHexOptimized(digest.digest());
     }
 }

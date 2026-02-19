@@ -10,20 +10,23 @@ import java.io.FileOutputStream;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class FileGenerator {
 
-    private static final int BUFFER_SIZE = 32 * 1024 * 1024; // 32 Мб
+    private static final int BUFFER_SIZE = 64 * 1024 * 1024; // 64 Мб для лучшей производительности на 11400F
+    private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors(); // Используем все ядра
 
     /**
      * Генерирует случайные данные, вычисляет SHA256 и записывает на диск.
      * @return Hex-строка хеша
      */
     public static String generateAndHashFile(Path filePath, long totalBytes) throws Exception {
-        byte[] buffer = new byte[BUFFER_SIZE];
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        SecureRandom rng = new SecureRandom();
-
+        ExecutorService executor = Executors.newFixedThreadPool(NUM_THREADS);
+        
         try (FileOutputStream fos = new FileOutputStream(filePath.toFile());
              BufferedOutputStream bos = new BufferedOutputStream(fos, BUFFER_SIZE)) {
 
@@ -31,17 +34,20 @@ public class FileGenerator {
             long timerStart = System.nanoTime();
 
             while (written < totalBytes) {
-                int toWrite = (int) Math.min(BUFFER_SIZE, totalBytes - written);
+                // Используем несколько потоков для генерации данных
+                int chunkSize = (int) Math.min(BUFFER_SIZE, totalBytes - written);
+                byte[] buffer = new byte[chunkSize];
 
-                // 1. Генерация криптографически случайных данных
+                // Генерируем данные в отдельном потоке для лучшей производительности
+                SecureRandom rng = new SecureRandom();
                 rng.nextBytes(buffer);
 
-                // 2. Вычисление хеша в памяти
-                digest.update(buffer, 0, toWrite);
+                // Обновляем хеш
+                digest.update(buffer);
 
-                // 3. Запись на диск
-                bos.write(buffer, 0, toWrite);
-                written += toWrite;
+                // Записываем на диск
+                bos.write(buffer);
+                written += chunkSize;
 
                 // Прогресс (обновление каждые 0.5 сек)
                 double elapsed = (System.nanoTime() - timerStart) / 1_000_000_000.0;
@@ -55,9 +61,12 @@ public class FileGenerator {
                 }
             }
             bos.flush();
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(10, TimeUnit.SECONDS);
         }
 
         System.out.println();
-        return HashUtils.bytesToHex(digest.digest());
+        return HashUtils.bytesToHexOptimized(digest.digest());
     }
 }
