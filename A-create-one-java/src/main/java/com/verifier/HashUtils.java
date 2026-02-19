@@ -1,3 +1,8 @@
+/*
+ *
+ * @author DrTengu. 2026/02
+ */
+
 package com.verifier;
 
 public class HashUtils {

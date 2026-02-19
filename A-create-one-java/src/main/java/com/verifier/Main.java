@@ -1,3 +1,8 @@
+/*
+ *
+ * @author DrTengu. 2026/02
+ */
+
 package com.verifier;
 
 import java.io.IOException;
@@ -6,8 +11,8 @@ import java.nio.file.Path;
 
 public class Main {
 
-    private static final long DEFAULT_FILE_SIZE_GB = 40;
-    private static final String DEFAULT_OUTPUT_DIR = "C:/LargeData";
+    private static final long DEFAULT_FILE_SIZE_GB = 4; // = 40;
+    private static final String DEFAULT_OUTPUT_DIR = "D:\\INS\\large-data-test";
 
     public static void main(String[] args) {
         System.out.println("╔════════════════════════════════════════════════════════╗");

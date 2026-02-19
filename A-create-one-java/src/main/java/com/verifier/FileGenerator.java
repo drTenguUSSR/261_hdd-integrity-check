@@ -1,3 +1,8 @@
+/*
+ *
+ * @author DrTengu. 2026/02
+ */
+
 package com.verifier;
 
 import java.io.BufferedOutputStream;
